@@ -89,7 +89,8 @@ impl DescriptorContext<'_> {
     }
     pub fn build_codec(&self) -> Result<Arc<dyn Codec>, Error> {
         build_codec(self.root_pos, self.descriptors)
-            .map_err(|e| ProtocolError::with_source(e).context("error decoding input codec"))
+        .map_err(|e| ProtocolError::with_source(e)
+            .context("error decoding input codec"))
     }
     pub fn wrong_type(&self, descriptor: &Descriptor, expected: &str) -> Error {
         DescriptorMismatch::with_message(format!(
@@ -99,8 +100,7 @@ impl DescriptorContext<'_> {
     pub fn field_number(&self, expected: usize, unexpected: usize) -> Error {
         DescriptorMismatch::with_message(format!(
             "expected {} fields, got {}",
-            expected, unexpected
-        ))
+            expected, unexpected))
     }
 }
 
@@ -174,31 +174,16 @@ impl QueryArg for Value {
             RelativeDuration(v) => v.encode_slot(enc)?,
             DateDuration(v) => v.encode_slot(enc)?,
             Json(v) => v.encode_slot(enc)?,
-            Set(_) => {
-                return Err(ClientEncodingError::with_message(
-                    "set cannot be query argument",
-                ))
-            }
-            Object { .. } => {
-                return Err(ClientEncodingError::with_message(
-                    "object cannot be query argument",
-                ))
-            }
-            SparseObject(_) => {
-                return Err(ClientEncodingError::with_message(
-                    "sparse object cannot be query argument",
-                ))
-            }
-            Tuple(_) => {
-                return Err(ClientEncodingError::with_message(
-                    "tuple object cannot be query argument",
-                ))
-            }
-            NamedTuple { .. } => {
-                return Err(ClientEncodingError::with_message(
-                    "named tuple object cannot be query argument",
-                ))
-            }
+            Set(_) => return Err(ClientEncodingError::with_message(
+                    "set cannot be query argument")),
+            Object {..} => return Err(ClientEncodingError::with_message(
+                    "object cannot be query argument")),
+            SparseObject(_) => return Err(ClientEncodingError::with_message(
+                    "sparse object cannot be query argument")),
+            Tuple(_) => return Err(ClientEncodingError::with_message(
+                    "tuple object cannot be query argument")),
+            NamedTuple {..} => return Err(ClientEncodingError::with_message(
+                    "named tuple object cannot be query argument")),
             Array(v) => v.encode_slot(enc)?,
             Enum(v) => v.encode_slot(enc)?,
             Range(v) => v.encode_slot(enc)?,
@@ -557,7 +542,7 @@ impl<V: Into<Value>> From<V> for UserValue {
 }
 impl<V: Into<Value>> From<Option<V>> for UserValue
 where
-    Value: From<V>,
+    Value: From<V>
 {
     fn from(value: Option<V>) -> Self {
         UserValue(value.map(Value::from))
@@ -565,17 +550,15 @@ where
 }
 impl<V: Into<Value>> From<Vec<V>> for UserValue
 where
-    Value: From<V>,
+    Value: From<V>
 {
     fn from(value: Vec<V>) -> Self {
-        UserValue(Some(Value::Array(
-            value.into_iter().map(Value::from).collect(),
-        )))
+        UserValue(Some(Value::Array(value.into_iter().map(Value::from).collect())))
     }
 }
 impl<V: Into<Value>> From<Option<Vec<V>>> for UserValue
 where
-    Value: From<V>,
+    Value: From<V>
 {
     fn from(value: Option<Vec<V>>) -> Self {
         let mapped = value.map(|value| Value::Array(value.into_iter().map(Value::from).collect()));
@@ -597,19 +580,15 @@ impl QueryArgs for HashMap<&str, UserValue> {
 
         let target_shape = {
             let root_pos = encoder.ctx.root_pos.ok_or_else(|| {
-                 let msg = format!(
-                     "provided {} positional arguments, but no arguments were expected by the server",
-                     self.len()
-                 );
-                 ClientEncodingError::with_message(msg)
-             })?;
+                let msg = format!(
+                    "provided {} positional arguments, but no arguments were expected by the server",
+                    self.len()
+                );
+                ClientEncodingError::with_message(msg)
+            })?;
             match encoder.ctx.get(root_pos)? {
                 Descriptor::ObjectShape(shape) => shape,
-                _ => {
-                    return Err(ClientEncodingError::with_message(
-                        "query didn't expect named arguments",
-                    ))
-                }
+                _ => return Err(ClientEncodingError::with_message("query didn't expect named arguments"))
             }
         };
 
@@ -626,7 +605,7 @@ impl QueryArgs for HashMap<&str, UserValue> {
                     cardinality: target_shape.cardinality,
                     flag_implicit: target_shape.flag_implicit,
                     flag_link: target_shape.flag_link,
-                    flag_link_property: target_shape.flag_link_property,
+                    flag_link_property: target_shape.flag_link_property
                 });
 
                 field_values.push(value.0.clone());
@@ -639,7 +618,7 @@ impl QueryArgs for HashMap<&str, UserValue> {
 
         Value::Object {
             shape: ObjectShape::new(mapped_shapes),
-            fields: field_values,
+            fields: field_values
         }
         .encode(encoder)
     }
